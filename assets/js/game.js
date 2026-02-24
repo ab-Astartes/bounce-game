@@ -61,6 +61,9 @@ class Game {
             ice: { name: '冰霜球', icon: '❄️', price: 250, color: '#74b9ff' }
         };
 
+        // 初始化游戏系统
+        this.systems = null;
+
         this.init();
     }
 
@@ -69,7 +72,13 @@ class Game {
         this.resizeCanvas();
         this.bindEvents();
         this.loadAssets();
+        this.initSystems();
         this.updateUI();
+    }
+
+    // 初始化系统
+    initSystems() {
+        this.systems = new GameSystems(this);
     }
 
     // 调整画布大小
@@ -116,6 +125,17 @@ class Game {
         document.getElementById('shop-back-btn').addEventListener('click', () => this.goToMenu());
         document.getElementById('rankings-btn').addEventListener('click', () => this.openRankings());
         document.getElementById('rankings-back-btn').addEventListener('click', () => this.goToMenu());
+
+        // 新系统按钮事件
+        document.getElementById('signin-btn').addEventListener('click', () => this.handleSignIn());
+        document.getElementById('tasks-btn').addEventListener('click', () => this.openTasks());
+        document.getElementById('tasks-back-btn').addEventListener('click', () => this.goToMenu());
+        document.getElementById('achievements-btn').addEventListener('click', () => this.openAchievements());
+        document.getElementById('achievements-back-btn').addEventListener('click', () => this.goToMenu());
+        document.getElementById('challenges-btn').addEventListener('click', () => this.openChallenges());
+        document.getElementById('challenges-back-btn').addEventListener('click', () => this.goToMenu());
+        document.getElementById('create-challenge-btn').addEventListener('click', () => this.createChallenge());
+        document.getElementById('feedback-btn').addEventListener('click', () => this.showFeedback());
     }
 
     // 加载资源
@@ -199,24 +219,6 @@ class Game {
         this.power = 0;
         this.powerVelocity = CONFIG.powerSpeed;
         this.updatePowerBar();
-    }
-
-    // 开始游戏
-    startGame() {
-        this.state = GameState.PLAYING;
-        this.score = 0;
-        this.combo = 0;
-
-        // 隐藏开始界面
-        document.getElementById('start-screen').classList.add('hidden');
-        document.getElementById('game-screen').classList.remove('hidden');
-
-        // 创建游戏对象
-        this.createBall();
-        this.createPlatforms();
-
-        // 开始游戏循环
-        this.gameLoop();
     }
 
     // 创建小球
@@ -352,12 +354,16 @@ class Game {
 
             // 检测是否掉落
             if (this.ball.y - this.ball.radius > this.canvas.height) {
+                console.log('游戏结束！连击清空');
+                this.combo = 0; // 清空连击
                 this.gameOver();
                 return;
             }
 
             // 检测是否超出右边界
             if (this.ball.x - this.ball.radius > this.canvas.width) {
+                console.log('游戏结束！连击清空');
+                this.combo = 0; // 清空连击
                 this.gameOver();
                 return;
             }
@@ -415,7 +421,10 @@ class Game {
                 const points = Math.round(10 + accuracy * 90);
 
                 this.score += points;
+
+                // 连击处理：每次成功落地，连击+1
                 this.combo++;
+                console.log('连击数：', this.combo);
 
                 // 5. 视觉效果
                 this.createParticles(this.ball.x, this.ball.y, platform.color);
@@ -606,17 +615,30 @@ class Game {
         this.ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // 小球高光
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-        this.ctx.beginPath();
-        this.ctx.arc(this.ball.x - 5, this.ball.y - 5, this.ball.radius * 0.3, 0, Math.PI * 2);
-        this.ctx.fill();
+        // 绘制皮肤图标 - 完全覆盖小球
+        // 使用更大的字体，确保图标覆盖整个球体
+        const iconSize = this.ball.radius * 2.2; // 直径的1.1倍
 
-        // 绘制图标
-        this.ctx.font = `${this.ball.radius}px Arial`;
+        this.ctx.save();
+        this.ctx.font = `bold ${iconSize}px Arial`;
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
-        this.ctx.fillText(this.ball.icon, this.ball.x, this.ball.y);
+        this.ctx.fillStyle = 'transparent'; // 先绘制透明的，用于设置文字大小
+
+        // 测量文字宽度
+        const metrics = this.ctx.measureText(this.ball.icon);
+        const textWidth = metrics.width;
+        const textHeight = iconSize; // emoji的实际高度约为字体大小
+
+        // 计算缩放比例，确保完全覆盖
+        const ballDiameter = this.ball.radius * 2;
+        const scale = Math.max(ballDiameter / textWidth, ballDiameter / textHeight) * 1.2;
+
+        // 绘制图标
+        this.ctx.translate(this.ball.x, this.ball.y);
+        this.ctx.scale(scale, scale);
+        this.ctx.fillText(this.ball.icon, 0, 0);
+        this.ctx.restore();
     }
 
     // 绘制粒子
@@ -704,31 +726,6 @@ class Game {
         return '🔴 地狱';
     }
 
-    // 游戏结束
-    gameOver() {
-        this.state = GameState.GAMEOVER;
-
-        // 更新最高分
-        if (this.score > this.highScore) {
-            this.highScore = this.score;
-            localStorage.setItem('highScore', this.highScore);
-            document.getElementById('new-record').classList.remove('hidden');
-        } else {
-            document.getElementById('new-record').classList.add('hidden');
-        }
-
-        // 显示结束界面
-        document.getElementById('game-screen').classList.add('hidden');
-        document.getElementById('gameover-screen').classList.remove('hidden');
-        document.getElementById('final-score').textContent = this.score;
-        document.getElementById('high-score').textContent = this.highScore;
-
-        // 奖励金币
-        const earnedCoins = Math.floor(this.score / 10);
-        this.coins += earnedCoins;
-        localStorage.setItem('coins', this.coins);
-    }
-
     // 看广告复活
     watchAdRevive() {
         // 这里应该集成真实的广告SDK
@@ -789,12 +786,30 @@ class Game {
     // 返回菜单
     goToMenu() {
         this.state = GameState.MENU;
-        document.getElementById('pause-screen').classList.add('hidden');
-        document.getElementById('gameover-screen').classList.add('hidden');
-        document.getElementById('shop-screen').classList.add('hidden');
-        document.getElementById('rankings-screen').classList.add('hidden');
-        document.getElementById('game-screen').classList.add('hidden');
-        document.getElementById('start-screen').classList.remove('hidden');
+
+        // 隐藏所有游戏界面
+        const screens = ['pause-screen', 'gameover-screen', 'shop-screen', 'rankings-screen',
+                       'tasks-screen', 'achievements-screen', 'challenges-screen', 'game-screen'];
+
+        screens.forEach(screenId => {
+            const element = document.getElementById(screenId);
+            if (element) {
+                element.classList.add('hidden');
+            }
+        });
+
+        // 移除所有模态框（弹窗）
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(modal => {
+            modal.remove();
+        });
+
+        // 显示开始界面
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) {
+            startScreen.classList.remove('hidden');
+        }
+
         this.updateUI();
     }
 
@@ -887,6 +902,120 @@ class Game {
     // 更新UI
     updateUI() {
         document.getElementById('best-score-display').textContent = this.highScore;
+        document.getElementById('coins-display').textContent = this.coins;
+    }
+
+    // ===== 新系统功能 =====
+
+    // 处理签到
+    handleSignIn() {
+        const result = this.systems.signIn();
+        if (result.success) {
+            this.systems.showNotification(result.message);
+        } else if (result.message) {
+            this.systems.showNotification(result.message);
+        }
+    }
+
+    // 打开每日任务
+    openTasks() {
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('tasks-screen').classList.remove('hidden');
+        this.systems.updateTasksUI();
+    }
+
+    // 打开成就
+    openAchievements() {
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('achievements-screen').classList.remove('hidden');
+        this.systems.updateAchievementsUI();
+    }
+
+    // 打开挑战
+    openChallenges() {
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('challenges-screen').classList.remove('hidden');
+        this.systems.updateChallengesUI();
+    }
+
+    // 创建挑战
+    createChallenge() {
+        const targetScore = parseInt(document.getElementById('challenge-target').value);
+        const challenge = this.systems.createChallenge(targetScore);
+
+        document.getElementById('challenge-share').classList.remove('hidden');
+        document.getElementById('challenge-link').value = challenge.shareText;
+
+        this.systems.showNotification('挑战已创建！复制链接分享给好友');
+    }
+
+    // 显示反馈
+    showFeedback() {
+        this.systems.showFeedbackForm();
+    }
+
+    // 重写游戏开始，添加系统追踪
+    startGame() {
+        this.state = GameState.PLAYING;
+        this.score = 0;
+        this.combo = 0;
+
+        // 隐藏开始界面
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
+
+        // 创建游戏对象
+        this.createBall();
+        this.createPlatforms();
+
+        // 追踪游戏开始事件
+        if (this.systems) {
+            this.systems.trackGameEvent('game_start', {});
+            this.systems.trackGameEvent('play_game', {});
+        }
+
+        // 开始游戏循环
+        this.gameLoop();
+    }
+
+    // 重写游戏结束，添加系统追踪
+    gameOver() {
+        this.state = GameState.GAMEOVER;
+
+        // 追踪游戏结束事件
+        if (this.systems) {
+            this.systems.trackGameEvent('game_over', {
+                score: this.score,
+                platforms: this.platformCount
+            });
+        }
+
+        // 更新最高分
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            localStorage.setItem('highScore', this.highScore);
+            document.getElementById('new-record').classList.remove('hidden');
+        } else {
+            document.getElementById('new-record').classList.add('hidden');
+        }
+
+        // 显示结束界面
+        document.getElementById('game-screen').classList.add('hidden');
+        document.getElementById('gameover-screen').classList.remove('hidden');
+        document.getElementById('final-score').textContent = this.score;
+        document.getElementById('high-score').textContent = this.highScore;
+
+        // 奖励金币
+        const earnedCoins = Math.floor(this.score / 10);
+        this.coins += earnedCoins;
+        localStorage.setItem('coins', this.coins);
+
+        // 更新UI
+        if (this.systems) {
+            this.systems.updateSignInUI();
+            this.systems.updateTasksUI();
+            this.systems.updateAchievementsUI();
+        }
     }
 }
 
