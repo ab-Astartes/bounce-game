@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="弹跳小球 - 趣味休闲物理弹射游戏">
+    <title>弹跳小球 - 趣味休闲游戏</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/systems.css">
+</head>
+<body>
+    <!-- 游戏主容器 -->
+    <div id="game-container">
+        <!-- 加载界面 -->
+        <div id="loading-screen">
+            <div class="loading-spinner"></div>
+            <p>加载中...</p>
+        </div>
+
+        <!-- 开始界面 -->
+        <div id="start-screen" class="screen">
+            <h1 class="game-title">🎱 弹跳小球</h1>
+            <p class="subtitle">按住蓄力，松开发射！</p>
+
+            <!-- 签到区域 -->
+            <div class="signin-area">
+                <button id="signin-btn" class="btn btn-signin">📅 每日签到</button>
+                <div id="signin-info" class="signin-info">
+                    <span id="signin-status">已连续签到 0 天</span>
+                    <span id="signin-reward">下次签到：+10 金币</span>
+                </div>
+            </div>
+
+            <button id="start-btn" class="btn btn-primary">开始游戏</button>
+
+            <!-- 菜单轮播 -->
+            <div class="menu-carousel">
+                <button id="menu-prev" class="menu-arrow">◀</button>
+                <div class="menu-container" id="menu-container">
+                    <!-- 页面1：核心功能 -->
+                    <div class="menu-page active">
+                        <div class="menu-buttons">
+                            <button id="rankings-btn" class="btn btn-secondary">📊 排行榜</button>
+                            <button id="shop-btn" class="btn btn-secondary">🛒 商店</button>
+                        </div>
+                    </div>
+                    <!-- 页面2：系统功能 -->
+                    <div class="menu-page">
+                        <div class="menu-buttons">
+                            <button id="tasks-btn" class="btn btn-secondary">📋 每日任务</button>
+                            <button id="achievements-btn" class="btn btn-secondary">🏆 成就</button>
+                        </div>
+                    </div>
+                    <!-- 页面3：互动功能 -->
+                    <div class="menu-page">
+                        <div class="menu-buttons">
+                            <button id="challenges-btn" class="btn btn-secondary">⚔️ 挑战</button>
+                            <button id="feedback-btn" class="btn btn-secondary">💬 反馈建议</button>
+                        </div>
+                    </div>
+                </div>
+                <button id="menu-next" class="menu-arrow">▶</button>
+            </div>
+
+            <!-- 菜单指示器 -->
+            <div class="menu-dots">
+                <span class="dot active" data-page="0"></span>
+                <span class="dot" data-page="1"></span>
+                <span class="dot" data-page="2"></span>
+            </div>
+
+            <div class="best-score">
+                <p>最佳得分：<span id="best-score-display">0</span></p>
+                <p>金币：<span id="coins-display">100</span></p>
+            </div>
+        </div>
+
+        <!-- 游戏界面 -->
+        <div id="game-screen" class="screen hidden">
+            <!-- 游戏HUD -->
+            <div id="game-hud">
+                <div class="score-display">
+                    <span class="label">得分：</span>
+                    <span id="current-score">0</span>
+                </div>
+                <div class="combo-display hidden">
+                    <span id="combo-count">0</span>x 连击！
+                </div>
+                <button id="pause-btn" class="btn-icon">⏸️</button>
+            </div>
+
+            <!-- 游戏画布 -->
+            <canvas id="game-canvas"></canvas>
+
+            <!-- 蓄力条 -->
+            <div id="power-bar-container">
+                <div id="power-bar">
+                    <div id="power-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 暂停界面 -->
+        <div id="pause-screen" class="screen hidden">
+            <h2>游戏暂停</h2>
+            <button id="resume-btn" class="btn btn-primary">继续游戏</button>
+            <button id="restart-btn" class="btn btn-secondary">重新开始</button>
+            <button id="home-btn" class="btn btn-secondary">返回主页</button>
+        </div>
+
+        <!-- 游戏结束界面 -->
+        <div id="gameover-screen" class="screen hidden">
+            <h2>游戏结束！</h2>
+            <div class="score-summary">
+                <p>本次得分：<span id="final-score">0</span></p>
+                <p>历史最高：<span id="high-score">0</span></p>
+            </div>
+            <div id="new-record" class="hidden">
+                <p>🎉 新纪录！</p>
+            </div>
+            <button id="revive-btn" class="btn btn-primary">
+                <span class="btn-icon">💖</span>
+                看广告复活
+            </button>
+            <button id="play-again-btn" class="btn btn-secondary">再玩一次</button>
+            <button id="share-btn" class="btn btn-share">
+                <span class="btn-icon">📤</span>
+                分享成绩
+            </button>
+        </div>
+
+        <!-- 商店界面 -->
+        <div id="shop-screen" class="screen hidden">
+            <h2>角色商店</h2>
+            <div class="shop-grid">
+                <!-- 角色卡片由JS动态生成 -->
+            </div>
+            <button id="shop-back-btn" class="btn btn-primary">返回</button>
+        </div>
+
+        <!-- 排行榜界面 -->
+        <div id="rankings-screen" class="screen hidden">
+            <h2>📊 排行榜</h2>
+            <div id="leaderboard-list" class="leaderboard-list">
+                <!-- 排行榜由JS动态生成 -->
+            </div>
+            <button id="rankings-back-btn" class="btn btn-primary">返回</button>
+        </div>
+
+        <!-- 每日任务界面 -->
+        <div id="tasks-screen" class="screen hidden">
+            <h2>📋 每日任务</h2>
+            <p class="subtitle">完成任务，赚取金币！</p>
+            <div id="tasks-list" class="tasks-list">
+                <!-- 任务由JS动态生成 -->
+            </div>
+            <button id="tasks-back-btn" class="btn btn-primary">返回</button>
+        </div>
+
+        <!-- 成就界面 -->
+        <div id="achievements-screen" class="screen hidden">
+            <h2>🏆 成就系统</h2>
+            <p class="subtitle">解锁成就，获得奖励！</p>
+            <div id="achievements-list" class="achievements-list">
+                <!-- 成就由JS动态生成 -->
+            </div>
+            <button id="achievements-back-btn" class="btn btn-primary">返回</button>
+        </div>
+
+        <!-- 挑战界面 -->
+        <div id="challenges-screen" class="screen hidden">
+            <h2>⚔️ 挑战系统</h2>
+            <div class="challenge-create">
+                <h3>创建挑战</h3>
+                <p>向好友发起挑战，看谁能获得更高分！</p>
+                <div class="form-group">
+                    <label>目标分数：</label>
+                    <input type="number" id="challenge-target" value="500" min="100" max="10000">
+                </div>
+                <button id="create-challenge-btn" class="btn btn-primary">创建挑战</button>
+                <div id="challenge-share" class="hidden">
+                    <p>挑战链接已生成！复制分享给好友：</p>
+                    <textarea id="challenge-link" readonly></textarea>
+                    <button onclick="window.game.systems.copyChallengeLink()" class="btn btn-secondary">复制链接</button>
+                </div>
+            </div>
+            <div class="challenge-history">
+                <h3>挑战记录</h3>
+                <div id="challenges-list" class="challenges-list">
+                    <!-- 挑战记录由JS动态生成 -->
+                </div>
+            </div>
+            <button id="challenges-back-btn" class="btn btn-primary">返回</button>
+        </div>
+    </div>
+
+    <!-- 广告容器 -->
+    <div id="ad-banner" class="ad-container">
+        <p class="ad-placeholder">广告位</p>
+    </div>
+
+    <!-- 通知容器 -->
+    <div id="notification-container"></div>
+
+    <!-- 加载JavaScript -->
+    <script src="assets/js/systems.js"></script>
+    <script src="assets/js/game.js"></script>
+</body>
+</html>
